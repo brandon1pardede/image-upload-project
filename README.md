@@ -210,3 +210,82 @@ The application includes comprehensive error handling:
 ## License
 
 This project is licensed under the MIT License.
+
+## Deployment
+
+This application can be deployed to Render.com using the following steps:
+
+### 1. Database Setup
+
+1. Create a MongoDB instance:
+   - Sign up for a free MongoDB Atlas account at https://www.mongodb.com/cloud/atlas
+   - Create a new cluster (free tier is sufficient)
+   - Configure network access to allow connections from anywhere
+   - Create a database user
+   - Get your MongoDB connection string
+
+### 2. Backend Deployment
+
+1. Create a new Web Service on Render:
+   - Connect your GitHub repository
+   - Select the `backend` directory as the root directory
+   - Choose "Node" as the runtime
+   - Set the build command: `npm install && npm run build`
+   - Set the start command: `npm start`
+   - Add environment variables:
+     ```
+     NODE_ENV=production
+     MONGODB_URI=your_mongodb_connection_string
+     PORT=3000
+     ```
+
+### 3. Frontend Deployment
+
+1. Create a new Static Site on Render:
+   - Connect your GitHub repository
+   - Select the `frontend` directory as the root directory
+   - Set the build command: `npm install && npm run build`
+   - Set the publish directory: `dist/frontend/browser`
+   - Add environment variable:
+     ```
+     API_URL=your_backend_service_url
+     ```
+
+### 4. Final Configuration
+
+1. Update CORS settings in backend:
+   - Add your frontend URL to allowed origins
+2. Update frontend environment:
+   - Ensure `environment.prod.ts` points to your backend URL
+3. Test the deployment:
+   - Verify file uploads work
+   - Check image loading and deletion
+   - Confirm all API endpoints are accessible
+
+### Production Build
+
+To build both applications for production:
+
+```bash
+# Build backend
+cd backend
+npm run build
+
+# Build frontend
+cd ../frontend
+npm run build
+```
+
+The backend build will be in `backend/dist` and the frontend build will be in `frontend/dist/frontend/browser`.
+
+## Environment Variables
+
+### Backend Variables
+
+- `NODE_ENV`: Set to 'production' in production
+- `MONGODB_URI`: MongoDB connection string
+- `PORT`: Server port (default: 3000)
+
+### Frontend Variables
+
+- `API_URL`: Backend API URL

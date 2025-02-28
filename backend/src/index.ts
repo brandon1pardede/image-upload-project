@@ -10,15 +10,24 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+// CORS configuration
+const corsOptions = {
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? process.env.FRONTEND_URL || 'https://your-frontend-url.onrender.com'
+      : 'http://localhost:4200',
+  credentials: true,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
 app.use('/api/images', imageRoutes);
 
 // Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response) => {
   logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
@@ -36,4 +45,4 @@ const startServer = async () => {
   }
 };
 
-startServer(); 
+startServer();
