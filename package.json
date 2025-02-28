@@ -1,0 +1,16 @@
+{
+  "name": "image-upload-project",
+  "version": "1.0.0",
+  "description": "Full-stack image upload application",
+  "scripts": {
+    "start:backend": "cd backend && yarn dev",
+    "start:frontend": "cd frontend && ng serve",
+    "start": "concurrently \"yarn start:backend\" \"yarn start:frontend\"",
+    "install:all": "yarn install && cd backend && yarn install && cd ../frontend && yarn install",
+    "build": "cd backend && yarn build && cd ../frontend && ng build --configuration production"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "license": "MIT"
+}
