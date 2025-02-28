@@ -72,42 +72,37 @@ The MongoDB instance will be available at `mongodb://localhost:27017` with the f
 - Username: admin
 - Password: password
 
-3. Install backend dependencies:
+3. Install all dependencies (backend and frontend):
 
 ```bash
-cd backend
-npm install
+yarn install:all
 ```
 
 4. Set up environment variables:
 
 ```bash
+cd backend
 cp .env.example .env
+cd ..
 ```
 
-5. Start the backend server:
+5. Start both backend and frontend development servers:
 
 ```bash
-npm run dev
-```
-
-6. Install frontend dependencies:
-
-```bash
-cd ../frontend
-npm install
-```
-
-7. Start the frontend application:
-
-```bash
-ng serve
+yarn start
 ```
 
 The application will be available at:
 
 - Frontend: http://localhost:4200
 - Backend API: http://localhost:3000
+
+Note: If you prefer to run the servers separately, you can use:
+
+```bash
+yarn start:backend    # For backend only
+yarn start:frontend   # For frontend only
+```
 
 ## API Endpoints
 
