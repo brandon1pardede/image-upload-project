@@ -40,4 +40,12 @@ export class ImageService {
   deleteImage(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  getImageUrl(id: string): string {
+    return `${this.apiUrl}/${id}`;
+  }
+
+  getImageThumbnailUrl(id: string): string {
+    return `${this.apiUrl}/${id}/thumbnail`;
+  }
 }

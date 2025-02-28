@@ -1,10 +1,18 @@
-import { Component, OnInit } from '@angular/core';
-import { NgFor, NgIf, DatePipe } from '@angular/common';
+import {
+  Component,
+  OnInit,
+  AfterViewInit,
+  ElementRef,
+  ViewChildren,
+  QueryList,
+} from '@angular/core';
+import { NgFor, NgIf, DatePipe, NgStyle } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { ImageService, Image } from '../../services/image.service';
+import { ImageService } from '../../services/image.service';
+import type { Image } from '../../services/image.service';
 import { ImagePreviewModalComponent } from '../image-preview-modal/image-preview-modal.component';
 import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-modal.component';
 
@@ -14,6 +22,7 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
   imports: [
     NgFor,
     NgIf,
+    NgStyle,
     DatePipe,
     MatCardModule,
     MatButtonModule,
@@ -25,10 +34,17 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
     <div class="image-grid">
       <div *ngFor="let image of images; let i = index" class="image-card">
         <div class="image-container">
+          <div class="image-placeholder" [style.backgroundColor]="'#f0f0f0'">
+            <div class="loading-shimmer"></div>
+          </div>
           <img
-            [src]="getImageUrl(image._id)"
+            #lazyImage
+            [attr.data-src]="getImageUrl(image._id)"
+            [attr.data-thumb]="getImageThumbnailUrl(image._id)"
             [alt]="image.filename"
             class="image"
+            [class.loaded]="loadedImages[i]"
+            (load)="onImageLoad(i)"
           />
           <div class="image-overlay">
             <div class="action-buttons">
@@ -150,6 +166,44 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
         padding-top: 75%;
         overflow: hidden;
         cursor: pointer;
+        background: #f0f0f0;
+      }
+
+      .image-placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        filter: blur(10px);
+        transform: scale(1.1);
+        transition: opacity 0.3s ease;
+      }
+
+      .loading-shimmer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0.2) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        animation: shimmer 1.5s infinite;
+      }
+
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(100%);
+        }
       }
 
       .image {
@@ -159,7 +213,12 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
         width: 100%;
         height: 100%;
         object-fit: cover;
-        transition: transform 0.3s ease;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+        opacity: 0;
+      }
+
+      .image.loaded {
+        opacity: 1;
       }
 
       .image-card:hover .image {
@@ -357,8 +416,12 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
     `,
   ],
 })
-export class ImageListComponent implements OnInit {
+export class ImageListComponent implements OnInit, AfterViewInit {
+  @ViewChildren('lazyImage') lazyImages!: QueryList<ElementRef>;
+
   images: Image[] = [];
+  loadedImages: boolean[] = [];
+  private observer: IntersectionObserver | null = null;
   isPreviewOpen = false;
   currentPreviewIndex = 0;
   isDeleteModalOpen = false;
@@ -367,19 +430,76 @@ export class ImageListComponent implements OnInit {
   constructor(
     private imageService: ImageService,
     private snackBar: MatSnackBar
-  ) {}
-
-  get previewImages() {
-    return this.images.map((image) => ({
-      url: this.getImageUrl(image._id),
-      filename: image.filename,
-      size: this.formatFileSize(image.metadata.size),
-      date: new Date(image.uploadDate).toLocaleDateString(),
-    }));
+  ) {
+    // Move observer setup to ngOnInit to ensure browser environment
   }
 
   ngOnInit(): void {
     this.loadImages();
+    if (typeof window !== 'undefined') {
+      this.setupIntersectionObserver();
+    }
+  }
+
+  ngAfterViewInit() {
+    this.observeImages();
+    this.lazyImages.changes.subscribe(() => {
+      this.observeImages();
+    });
+  }
+
+  private setupIntersectionObserver() {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      // Fallback for environments without IntersectionObserver
+      return;
+    }
+
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const img = entry.target as HTMLImageElement;
+            const thumbUrl = img.getAttribute('data-thumb');
+            const fullUrl = img.getAttribute('data-src');
+
+            if (thumbUrl && fullUrl) {
+              // Load thumbnail first
+              img.src = thumbUrl;
+
+              // Then preload the full image
+              const fullImage = new Image();
+              fullImage.onload = () => {
+                img.src = fullUrl;
+              };
+              fullImage.src = fullUrl;
+            }
+
+            this.observer?.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '50px',
+        threshold: 0.1,
+      }
+    );
+  }
+
+  private observeImages() {
+    if (this.observer) {
+      this.lazyImages.forEach((imageRef) => {
+        this.observer?.observe(imageRef.nativeElement);
+      });
+    }
+  }
+
+  onImageLoad(index: number) {
+    this.loadedImages[index] = true;
+  }
+
+  getImageThumbnailUrl(id: string): string {
+    return this.imageService.getImageThumbnailUrl(id);
   }
 
   loadImages(): void {
@@ -395,7 +515,7 @@ export class ImageListComponent implements OnInit {
   }
 
   getImageUrl(id: string): string {
-    return `${this.imageService['apiUrl']}/${id}`;
+    return this.imageService.getImageUrl(id);
   }
 
   downloadImage(image: Image): void {
@@ -476,5 +596,20 @@ export class ImageListComponent implements OnInit {
       this.deleteImage(this.imageToDelete);
       this.closeDeleteModal();
     }
+  }
+
+  ngOnDestroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+  }
+
+  get previewImages() {
+    return this.images.map((image) => ({
+      url: this.getImageUrl(image._id),
+      filename: image.filename,
+      size: this.formatFileSize(image.metadata.size),
+      date: new Date(image.uploadDate).toLocaleDateString(),
+    }));
   }
 }
