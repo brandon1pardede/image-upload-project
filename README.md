@@ -278,14 +278,48 @@ npm run build
 
 The backend build will be in `backend/dist` and the frontend build will be in `frontend/dist/frontend/browser`.
 
-## Environment Variables
+## Environment Configuration
 
-### Backend Variables
+### Frontend Environment
 
-- `NODE_ENV`: Set to 'production' in production
-- `MONGODB_URI`: MongoDB connection string
-- `PORT`: Server port (default: 3000)
+The frontend uses different environment configurations for development and production:
 
-### Frontend Variables
+1. Development (`.env`):
 
-- `API_URL`: Backend API URL
+```bash
+API_URL=http://localhost:3000
+```
+
+2. Production:
+   When deploying to production, set the environment variable:
+
+```bash
+API_URL=https://your-api-url.com
+```
+
+### Backend Environment
+
+The backend uses environment variables for configuration:
+
+1. Development (`.env`):
+
+```bash
+PORT=3000
+NODE_ENV=development
+MONGODB_URI=your_mongodb_connection_string
+```
+
+2. Production:
+
+```bash
+PORT=3000
+NODE_ENV=production
+MONGODB_URI=your_mongodb_atlas_uri
+FRONTEND_URL=https://your-frontend-url.com
+```
+
+Make sure to:
+
+1. Copy `.env.example` to `.env` in both frontend and backend directories
+2. Update the values according to your environment
+3. Never commit `.env` files to version control
