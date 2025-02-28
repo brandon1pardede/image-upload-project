@@ -1,13 +1,16 @@
 import { Component, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { ImageUploadComponent } from './components/image-upload/image-upload.component';
 import { ImageListComponent } from './components/image-list/image-list.component';
+import type { Image } from './services/image.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
+    CommonModule,
     MatToolbarModule,
     MatIconModule,
     ImageUploadComponent,
@@ -33,8 +36,7 @@ import { ImageListComponent } from './components/image-list/image-list.component
             <section class="section">
               <h2 class="section-title">Upload Images</h2>
               <app-image-upload
-                (uploaded)="onImageUploaded()"
-                class="upload-component"
+                (uploaded)="onImageUploaded($event)"
               ></app-image-upload>
             </section>
 
@@ -187,9 +189,7 @@ import { ImageListComponent } from './components/image-list/image-list.component
 export class AppComponent {
   @ViewChild('imageList') imageList!: ImageListComponent;
 
-  onImageUploaded(): void {
-    if (this.imageList) {
-      this.imageList.loadImages();
-    }
+  onImageUploaded(image: Image) {
+    this.imageList.addNewImage(image);
   }
 }

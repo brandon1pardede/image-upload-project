@@ -11,6 +11,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NgIf } from '@angular/common';
 import { ImageService } from '../../services/image.service';
+import type { Image } from '../../services/image.service';
 
 @Component({
   selector: 'app-image-upload',
@@ -208,7 +209,7 @@ import { ImageService } from '../../services/image.service';
   ],
 })
 export class ImageUploadComponent {
-  @Output() uploaded = new EventEmitter<void>();
+  @Output() uploaded = new EventEmitter<Image>();
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   isDragOver = false;
@@ -260,30 +261,60 @@ export class ImageUploadComponent {
   }
 
   private uploadFile(file: File): void {
-    if (!file.type.startsWith('image/')) {
-      this.showError('Please select an image file');
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      this.showError('File size should not exceed 5MB');
+    if (!this.validateFile(file)) {
       return;
     }
 
     this.uploading = true;
+
+    // Create an optimistic image object
+    const optimisticImage: Image = {
+      _id: 'temp_' + Date.now(), // Temporary ID
+      filename: file.name,
+      contentType: file.type,
+      uploadDate: new Date().toISOString(),
+      metadata: {
+        size: file.size,
+      },
+    };
+
+    // Emit the optimistic image immediately
+    this.uploaded.emit(optimisticImage);
+
+    // Create object URL for immediate display
+    const objectUrl = URL.createObjectURL(file);
+
     this.imageService.uploadImage(file).subscribe({
-      next: () => {
+      next: (actualImage) => {
         this.uploading = false;
         this.showSuccess('Image uploaded successfully');
-        this.uploaded.emit();
+        // Update the image with actual data
+        this.uploaded.emit(actualImage);
+        // Clean up object URL
+        URL.revokeObjectURL(objectUrl);
       },
       error: (error) => {
         this.uploading = false;
         this.showError('Failed to upload image');
         console.error('Error uploading image:', error);
+        // Could emit a failure event here if needed
       },
     });
+  }
+
+  private validateFile(file: File): boolean {
+    if (!file.type.startsWith('image/')) {
+      this.showError('Please select an image file');
+      return false;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      this.showError('File size should not exceed 5MB');
+      return false;
+    }
+
+    return true;
   }
 
   private showError(message: string): void {

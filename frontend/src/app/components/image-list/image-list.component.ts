@@ -43,8 +43,8 @@ import { ConfirmationModalComponent } from '../confirmation-modal/confirmation-m
             [attr.data-thumb]="getImageThumbnailUrl(image._id)"
             [alt]="image.filename"
             class="image"
-            [class.loaded]="loadedImages[i]"
-            (load)="onImageLoad(i)"
+            [class.loaded]="isImageLoaded(image._id)"
+            (load)="onImageLoad(image._id)"
           />
           <div class="image-overlay">
             <div class="action-buttons">
@@ -420,7 +420,7 @@ export class ImageListComponent implements OnInit, AfterViewInit {
   @ViewChildren('lazyImage') lazyImages!: QueryList<ElementRef>;
 
   images: Image[] = [];
-  loadedImages: boolean[] = [];
+  loadedImages: { [key: string]: boolean } = {};
   private observer: IntersectionObserver | null = null;
   isPreviewOpen = false;
   currentPreviewIndex = 0;
@@ -494,8 +494,12 @@ export class ImageListComponent implements OnInit, AfterViewInit {
     }
   }
 
-  onImageLoad(index: number) {
-    this.loadedImages[index] = true;
+  onImageLoad(imageId: string) {
+    this.loadedImages[imageId] = true;
+  }
+
+  isImageLoaded(imageId: string): boolean {
+    return this.loadedImages[imageId] || false;
   }
 
   getImageThumbnailUrl(id: string): string {
@@ -611,5 +615,40 @@ export class ImageListComponent implements OnInit, AfterViewInit {
       size: this.formatFileSize(image.metadata.size),
       date: new Date(image.uploadDate).toLocaleDateString(),
     }));
+  }
+
+  addNewImage(image: Image) {
+    if (image._id.startsWith('temp_')) {
+      // This is an optimistic update
+      this.images = [image, ...this.images];
+      this.loadedImages[image._id] = false;
+    } else {
+      // This is the actual update
+      // Find and replace the temporary image if it exists
+      const tempIndex = this.images.findIndex((img) =>
+        img._id.startsWith('temp_')
+      );
+      if (tempIndex !== -1) {
+        this.images[tempIndex] = image;
+        delete this.loadedImages[this.images[tempIndex]._id];
+      } else {
+        // If no temporary image found, add the new image
+        this.images = [image, ...this.images];
+      }
+      this.loadedImages[image._id] = false;
+    }
+
+    // Force change detection and start loading images
+    setTimeout(() => {
+      const preloadImage = new Image();
+      const thumbPreloadImage = new Image();
+
+      thumbPreloadImage.src = this.getImageThumbnailUrl(image._id);
+      preloadImage.src = this.getImageUrl(image._id);
+
+      thumbPreloadImage.onload = () => {
+        this.loadedImages[image._id] = true;
+      };
+    });
   }
 }
