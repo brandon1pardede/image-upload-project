@@ -18,6 +18,8 @@ app.use(express.json());
 app.use('/api/images', imageRoutes);
 
 // Error handling middleware
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal server error' });
@@ -36,4 +38,4 @@ const startServer = async () => {
   }
 };
 
-startServer(); 
+startServer();

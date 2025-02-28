@@ -21,9 +21,10 @@ const upload = multer({
 });
 
 // Routes
+//@ts-expect-error - Multer is not typed correctly
 router.post('/upload', upload.single('image'), imageController.upload);
 router.get('/:id', imageController.getImage);
 router.get('/', imageController.getAllImages);
 router.delete('/:id', imageController.deleteImage);
 
-export default router; 
+export default router;
